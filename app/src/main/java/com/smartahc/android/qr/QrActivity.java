@@ -26,7 +26,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScannerView = new ZXingScannerView(this, ZXingType.QR_READER);
+        mScannerView = new ZXingScannerView(this);
         setContentView(mScannerView);
         results.clear();
     }

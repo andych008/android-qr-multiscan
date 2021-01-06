@@ -14,7 +14,6 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.LuminanceSource;
-import com.google.zxing.MultiFormatReader;
 import com.google.zxing.NotFoundException;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.ReaderException;
@@ -33,45 +32,29 @@ public class ZXingScannerView extends BarcodeScannerView {
     public static final List<BarcodeFormat> ALL_FORMATS = new ArrayList();
     private List<BarcodeFormat> mFormats;
     private ZXingScannerView.ResultHandler mResultHandler;
-    // MultiFormatReader : 支持二维码和条形码扫描，只返回一个扫描结果；
-    private MultiFormatReader mMultiFormatReader;
     // QrCodeMultiReader : 仅支持二维码扫描，可扫描多个二维码，返回多个结果；
     private QRCodeMultiReader qrCodeMultiReader;
-    // type
-    private ZXingType zXingType;
+
     private EnumMap hints;
 
-    /**
-     * 初始化
-     */
-    private void init() {
-        switch (zXingType) {
-            case READER:
-                this.initMultiFormatReader();
-                break;
-            case QR_READER:
-                this.initQRMultiFormatReader();
-                break;
-        }
-    }
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
 
-    public ZXingScannerView(Context context, ZXingType zXingType) {
+
+    public ZXingScannerView(Context context) {
         super(context);
-        this.zXingType = zXingType;
-        this.init();
+        this.initQRMultiFormatReader();
     }
 
 
-    public ZXingScannerView(Context context, AttributeSet attributeSet, ZXingType zXingType) {
+    public ZXingScannerView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
-        this.zXingType = zXingType;
-        this.init();
+        this.initQRMultiFormatReader();
     }
 
     public void setFormats(List<BarcodeFormat> formats) {
         this.mFormats = formats;
-        this.init();
+        this.initQRMultiFormatReader();
     }
 
     public void setResultHandler(ZXingScannerView.ResultHandler resultHandler) {
@@ -91,15 +74,6 @@ public class ZXingScannerView extends BarcodeScannerView {
         this.qrCodeMultiReader = new QRCodeMultiReader();
     }
 
-    /**
-     * 初始化 multiformatReader
-     */
-    private void initMultiFormatReader() {
-        hints = new EnumMap(DecodeHintType.class);
-        hints.put(DecodeHintType.POSSIBLE_FORMATS, this.getFormats());
-        this.mMultiFormatReader = new MultiFormatReader();
-        this.mMultiFormatReader.setHints(hints);
-    }
 
     /**
      * 解析数据
@@ -109,16 +83,10 @@ public class ZXingScannerView extends BarcodeScannerView {
      */
     public void onPreviewFrame(byte[] data, Camera camera) {
         if (this.mResultHandler != null) {
-            switch (zXingType) {
-                case READER:
-                    parseMultiFormatReader(data, camera);
-                    break;
-                case QR_READER:
-                    parseQrMultiFormatReader(data, camera);
-                    break;
-            }
+            parseQrMultiFormatReader(data, camera);
         }
     }
+
 
     /**
      * 解析多个结果
@@ -133,124 +101,25 @@ public class ZXingScannerView extends BarcodeScannerView {
             if (DisplayUtils.getScreenOrientation(this.getContext()) == 1) {
                 int rawResult = this.getRotationCount();
                 if (rawResult == 1 || rawResult == 3) {
-                    int source = width;
+                    int tmp = width;
                     width = height;
-                    height = source;
+                    height = tmp;
                 }
 
                 data = this.getRotatedData(data, camera);
             }
 
-            Result[] rawResult1 = null;
-            PlanarYUVLuminanceSource source1 = this.buildLuminanceSource(data, width, height);
-            if (source1 != null) {
-                BinaryBitmap finalRawResult = new BinaryBitmap(new HybridBinarizer(source1));
-                try {
-                    rawResult1 = this.qrCodeMultiReader.decodeMultiple(finalRawResult, hints);
-                } catch (ReaderException | NullPointerException | ArrayIndexOutOfBoundsException ignored) {
-                    ;
-                } finally {
-                    this.qrCodeMultiReader.reset();
-                }
+            Result[] rawResult = getRawResult(data, width, height);
 
-                if (rawResult1 == null) {
-                    LuminanceSource handler = source1.invert();
-                    finalRawResult = new BinaryBitmap(new HybridBinarizer(handler));
-
-                    try {
-                        rawResult1 = this.qrCodeMultiReader.decodeMultiple(finalRawResult, hints);
-                    } catch (NotFoundException ignored) {
-                        ;
-                    } finally {
-                        this.qrCodeMultiReader.reset();
-                    }
-                }
-            }
-
-            if (rawResult1 != null && rawResult1.length > 0) {
-                Handler handler1 = new Handler(Looper.getMainLooper());
-                final Result[] finalRawResult1 = rawResult1;
-                handler1.post(new Runnable() {
+            if (rawResult != null && rawResult.length > 0) {
+                final Result[] finalRawResult = rawResult;
+                mainHandler.post(new Runnable() {
                     public void run() {
                         ResultHandler tmpResultHandler = ZXingScannerView.this.mResultHandler;
                         ZXingScannerView.this.mResultHandler = null;
                         ZXingScannerView.this.stopCameraPreview();
                         if (tmpResultHandler != null) {
-                            tmpResultHandler.handleResult(finalRawResult1);
-                        }
-
-                    }
-                });
-            } else {
-                camera.setOneShotPreviewCallback(this);
-            }
-        } catch (RuntimeException var33) {
-            Log.e("ZXingScannerView", var33.toString(), var33);
-        }
-    }
-
-    /**
-     * multiformatReader
-     */
-    private void parseMultiFormatReader(byte[] data, Camera camera) {
-        try {
-            Parameters e = camera.getParameters();
-            Size size = e.getPreviewSize();
-            int width = size.width;
-            int height = size.height;
-            if (DisplayUtils.getScreenOrientation(this.getContext()) == 1) {
-                int rawResult = this.getRotationCount();
-                if (rawResult == 1 || rawResult == 3) {
-                    int source = width;
-                    width = height;
-                    height = source;
-                }
-
-                data = this.getRotatedData(data, camera);
-            }
-
-
-            Result rawResult1 = null;
-            PlanarYUVLuminanceSource source1 = this.buildLuminanceSource(data, width, height);
-            if (source1 != null) {
-                BinaryBitmap finalRawResult = new BinaryBitmap(new HybridBinarizer(source1));
-
-                try {
-                    rawResult1 = this.mMultiFormatReader.decodeWithState(finalRawResult);
-                } catch (ReaderException var29) {
-                    ;
-                } catch (NullPointerException var30) {
-                    ;
-                } catch (ArrayIndexOutOfBoundsException var31) {
-                    ;
-                } finally {
-                    this.mMultiFormatReader.reset();
-                }
-
-                if (rawResult1 == null) {
-                    LuminanceSource handler = source1.invert();
-                    finalRawResult = new BinaryBitmap(new HybridBinarizer(handler));
-
-                    try {
-                        rawResult1 = this.mMultiFormatReader.decodeWithState(finalRawResult);
-                    } catch (NotFoundException var27) {
-                        ;
-                    } finally {
-                        this.mMultiFormatReader.reset();
-                    }
-                }
-            }
-
-            if (rawResult1 != null) {
-                Handler handler1 = new Handler(Looper.getMainLooper());
-                final Result finalRawResult1 = rawResult1;
-                handler1.post(new Runnable() {
-                    public void run() {
-                        ResultHandler tmpResultHandler = ZXingScannerView.this.mResultHandler;
-                        ZXingScannerView.this.mResultHandler = null;
-                        ZXingScannerView.this.stopCameraPreview();
-                        if (tmpResultHandler != null) {
-                            tmpResultHandler.handleResult(finalRawResult1);
+                            tmpResultHandler.handleResult(finalRawResult);
                         }
 
                     }
@@ -271,10 +140,41 @@ public class ZXingScannerView extends BarcodeScannerView {
         super.resumeCameraPreview();
     }
 
+    private Result[] getRawResult(byte[] data, int width, int height) {
+
+        Result[] rawResult1 = null;
+        PlanarYUVLuminanceSource source1 = this.buildLuminanceSource(data, width, height);
+        if (source1 != null) {
+            BinaryBitmap finalRawResult = new BinaryBitmap(new HybridBinarizer(source1));
+            try {
+                rawResult1 = this.qrCodeMultiReader.decodeMultiple(finalRawResult, hints);
+            } catch (ReaderException | NullPointerException | ArrayIndexOutOfBoundsException ignored) {
+                ;
+            } finally {
+                this.qrCodeMultiReader.reset();
+            }
+
+            if (rawResult1 == null) {
+                LuminanceSource handler = source1.invert();
+                finalRawResult = new BinaryBitmap(new HybridBinarizer(handler));
+
+                try {
+                    rawResult1 = this.qrCodeMultiReader.decodeMultiple(finalRawResult, hints);
+                } catch (NotFoundException ignored) {
+                    ;
+                } finally {
+                    this.qrCodeMultiReader.reset();
+                }
+            }
+        }
+
+        return rawResult1;
+    }
+
     /**
      * PlanarYUVLuminanceSource
      */
-    public PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
+    private PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
         Rect rect = this.getFramingRectInPreview(width, height);
         if (rect == null) {
             return null;
