@@ -1,4 +1,4 @@
-package com.smartahc.android.core_qr_lib;
+package com.smartahc.android.coreqr;
 
 /**
  * reader : 支持二维码和条形码，但只返回一个结果；

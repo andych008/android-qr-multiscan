@@ -1,4 +1,4 @@
-package com.smartahc.android.core_qr_lib;
+package com.smartahc.android.coreqr;
 
 import android.content.Context;
 import android.graphics.Canvas;

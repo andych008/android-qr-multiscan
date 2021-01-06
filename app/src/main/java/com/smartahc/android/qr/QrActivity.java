@@ -7,8 +7,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.google.zxing.Result;
-import com.smartahc.android.core_qr_lib.ZXingScannerView;
-import com.smartahc.android.core_qr_lib.ZXingType;
+import com.smartahc.android.coreqr.ZXingScannerView;
+import com.smartahc.android.coreqr.ZXingType;
 
 import java.util.ArrayList;
 
@@ -51,6 +51,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
 
     @Override
     public void handleResult(Result... results) {
+        Log.v("result len:", ""+results.length);
         if (results.length > 0) {
             for (int i = 0; i < results.length; i++) {
                 Result result = results[i];
