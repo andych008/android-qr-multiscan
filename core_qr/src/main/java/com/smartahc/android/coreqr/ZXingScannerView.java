@@ -22,6 +22,7 @@ import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.multi.qrcode.QRCodeMultiReader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
@@ -112,6 +113,8 @@ public class ZXingScannerView extends BarcodeScannerView {
             Result[] rawResult = getRawResult(data, width, height);
 
             if (rawResult != null && rawResult.length > 0) {
+
+                Log.d(TAG, "parseQrMultiFormatReader() called with: getResultPoints = [" + Arrays.toString(rawResult[0].getResultPoints()) + "], getNumBits = [" + rawResult[0].getNumBits() + "]");
                 final Result[] finalRawResult = rawResult;
                 mainHandler.post(new Runnable() {
                     public void run() {
@@ -192,23 +195,7 @@ public class ZXingScannerView extends BarcodeScannerView {
     }
 
     static {
-        ALL_FORMATS.add(BarcodeFormat.AZTEC);
-        ALL_FORMATS.add(BarcodeFormat.CODABAR);
-        ALL_FORMATS.add(BarcodeFormat.CODE_39);
-        ALL_FORMATS.add(BarcodeFormat.CODE_93);
-        ALL_FORMATS.add(BarcodeFormat.CODE_128);
-        ALL_FORMATS.add(BarcodeFormat.DATA_MATRIX);
-        ALL_FORMATS.add(BarcodeFormat.EAN_8);
-        ALL_FORMATS.add(BarcodeFormat.EAN_13);
-        ALL_FORMATS.add(BarcodeFormat.ITF);
-        ALL_FORMATS.add(BarcodeFormat.MAXICODE);
-        ALL_FORMATS.add(BarcodeFormat.PDF_417);
         ALL_FORMATS.add(BarcodeFormat.QR_CODE);
-        ALL_FORMATS.add(BarcodeFormat.RSS_14);
-        ALL_FORMATS.add(BarcodeFormat.RSS_EXPANDED);
-        ALL_FORMATS.add(BarcodeFormat.UPC_A);
-        ALL_FORMATS.add(BarcodeFormat.UPC_E);
-        ALL_FORMATS.add(BarcodeFormat.UPC_EAN_EXTENSION);
     }
 
     public interface ResultHandler {
