@@ -1,6 +1,7 @@
 package com.smartahc.android.coreqr;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
@@ -18,6 +19,7 @@ import com.google.zxing.NotFoundException;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.ReaderException;
 import com.google.zxing.Result;
+import com.google.zxing.ResultPoint;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.multi.qrcode.QRCodeMultiReader;
 
@@ -114,7 +116,9 @@ public class ZXingScannerView extends BarcodeScannerView {
 
             if (rawResult != null && rawResult.length > 0) {
 
-                Log.d(TAG, "parseQrMultiFormatReader() called with: getResultPoints = [" + Arrays.toString(rawResult[0].getResultPoints()) + "], getNumBits = [" + rawResult[0].getNumBits() + "]");
+                ResultPoint[] resultPoints = rawResult[0].getResultPoints();
+                Log.d(TAG, "parseQrMultiFormatReader() called with: getResultPoints = [" + Arrays.toString(resultPoints) + "], getNumBits = [" + rawResult[0].getNumBits() + "]");
+                mViewFinderView.setRawResult(rawResult);
                 final Result[] finalRawResult = rawResult;
                 mainHandler.post(new Runnable() {
                     public void run() {
@@ -151,6 +155,7 @@ public class ZXingScannerView extends BarcodeScannerView {
             BinaryBitmap finalRawResult = new BinaryBitmap(new HybridBinarizer(source1));
             try {
                 rawResult1 = this.qrCodeMultiReader.decodeMultiple(finalRawResult, hints);
+
             } catch (ReaderException | NullPointerException | ArrayIndexOutOfBoundsException ignored) {
                 ;
             } finally {
@@ -169,15 +174,52 @@ public class ZXingScannerView extends BarcodeScannerView {
                     this.qrCodeMultiReader.reset();
                 }
             }
+
+            mViewFinderView.setResultScale((float) finalRawResult.getWidth()/getWidth());
+            Log.d(TAG, "parseQrMultiFormatReader() called with: finalRawResult.getWidth() = [" +finalRawResult.getWidth()
+                    + "], finalRawResult.getHeight() = [" + finalRawResult.getHeight() + "]");
+
         }
 
         return rawResult1;
+    }
+
+    private static Bitmap createThumbnail(PlanarYUVLuminanceSource source) {
+        int[] pixels = source.renderThumbnail();
+        int width = source.getThumbnailWidth();
+        int height = source.getThumbnailHeight();
+        Bitmap bitmap = Bitmap.createBitmap(pixels, 0, width, width, height, Bitmap.Config.ARGB_8888);
+//        ByteArrayOutputStream out = new ByteArrayOutputStream();
+//        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, out);
+//        bundle.putByteArray(DecodeThread.BARCODE_BITMAP, out.toByteArray());
+//        bundle.putFloat(DecodeThread.BARCODE_SCALED_FACTOR, (float) width / source.getWidth());
+
+        return bitmap;
     }
 
     /**
      * PlanarYUVLuminanceSource
      */
     private PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
+        Rect rect = this.getFramingRectInPreview(width, height);
+        if (rect == null) {
+            return null;
+        } else {
+            PlanarYUVLuminanceSource source = null;
+
+            try {
+                source = new PlanarYUVLuminanceSource(data, width, height, 0, 0, width, height, false);
+            } catch (Exception var7) {
+                ;
+            }
+
+            return source;
+        }
+    }
+    /**
+     * PlanarYUVLuminanceSource
+     */
+    private PlanarYUVLuminanceSource buildLuminanceSourceBak(byte[] data, int width, int height) {
         Rect rect = this.getFramingRectInPreview(width, height);
         if (rect == null) {
             return null;

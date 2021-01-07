@@ -1,6 +1,7 @@
 package com.smartahc.android.coreqr;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.CornerPathEffect;
 import android.graphics.Paint;
@@ -12,9 +13,15 @@ import android.graphics.Paint.Style;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.google.zxing.Result;
+import com.google.zxing.ResultPoint;
+
 
 public class ViewFinderView extends View implements IViewFinder {
     private static final String TAG = "ViewFinderView";
+
+    private static final int CURRENT_POINT_OPACITY = 0xA0;
+
     private Rect mFramingRect;
     private static final float PORTRAIT_WIDTH_RATIO = 0.75F;
     private static final float PORTRAIT_WIDTH_HEIGHT_RATIO = 0.75F;
@@ -34,12 +41,27 @@ public class ViewFinderView extends View implements IViewFinder {
     protected Paint mLaserPaint;
     protected Paint mFinderMaskPaint;
     protected Paint mBorderPaint;
+    protected Paint mPaint;
     protected int mBorderLineLength;
     protected boolean mSquareViewFinder;
     private boolean mIsLaserEnabled;
     private float mBordersAlpha;
     private int mViewFinderOffset;
 
+    private Result[] rawResult;
+    private float resultScale =1.0f;
+
+    public void setResultScale(float resultScale) {
+        this.resultScale = resultScale;
+    }
+
+
+    void setRawResult(Result... rawResult) {
+        if (rawResult != null && rawResult.length > 0) {
+            this.rawResult = rawResult;
+            postInvalidate();
+        }
+    }
     public ViewFinderView(Context context) {
         super(context);
         this.mDefaultLaserColor = this.getResources().getColor(R.color.viewfinder_laser);
@@ -74,6 +96,7 @@ public class ViewFinderView extends View implements IViewFinder {
         this.mBorderPaint.setStrokeWidth((float) this.mDefaultBorderStrokeWidth);
         this.mBorderPaint.setAntiAlias(true);
         this.mBorderLineLength = this.mDefaultBorderLineLength;
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     }
 
     public void setLaserColor(int laserColor) {
@@ -137,13 +160,12 @@ public class ViewFinderView extends View implements IViewFinder {
     }
 
     public void onDraw(Canvas canvas) {
-        if (this.getFramingRect() != null) {
-            this.drawViewFinderMask(canvas);
-            this.drawViewFinderBorder(canvas);
+        if (mFramingRect != null) {
+            drawResultPoint(canvas);
+
             if (this.mIsLaserEnabled) {
                 this.drawLaser(canvas);
             }
-
         }
     }
 
@@ -157,26 +179,6 @@ public class ViewFinderView extends View implements IViewFinder {
         canvas.drawRect(0.0F, (float) (framingRect.bottom + 1), (float) width, (float) height, this.mFinderMaskPaint);
     }
 
-    public void drawViewFinderBorder(Canvas canvas) {
-        Rect framingRect = this.getFramingRect();
-        Path path = new Path();
-        path.moveTo((float) framingRect.left, (float) (framingRect.top + this.mBorderLineLength));
-        path.lineTo((float) framingRect.left, (float) framingRect.top);
-        path.lineTo((float) (framingRect.left + this.mBorderLineLength), (float) framingRect.top);
-        canvas.drawPath(path, this.mBorderPaint);
-        path.moveTo((float) framingRect.right, (float) (framingRect.top + this.mBorderLineLength));
-        path.lineTo((float) framingRect.right, (float) framingRect.top);
-        path.lineTo((float) (framingRect.right - this.mBorderLineLength), (float) framingRect.top);
-        canvas.drawPath(path, this.mBorderPaint);
-        path.moveTo((float) framingRect.right, (float) (framingRect.bottom - this.mBorderLineLength));
-        path.lineTo((float) framingRect.right, (float) framingRect.bottom);
-        path.lineTo((float) (framingRect.right - this.mBorderLineLength), (float) framingRect.bottom);
-        canvas.drawPath(path, this.mBorderPaint);
-        path.moveTo((float) framingRect.left, (float) (framingRect.bottom - this.mBorderLineLength));
-        path.lineTo((float) framingRect.left, (float) framingRect.bottom);
-        path.lineTo((float) (framingRect.left + this.mBorderLineLength), (float) framingRect.bottom);
-        canvas.drawPath(path, this.mBorderPaint);
-    }
 
     public void drawLaser(Canvas canvas) {
         Rect framingRect = this.getFramingRect();
@@ -184,7 +186,25 @@ public class ViewFinderView extends View implements IViewFinder {
         this.scannerAlpha = (this.scannerAlpha + 1) % SCANNER_ALPHA.length;
         int middle = framingRect.height() / 2 + framingRect.top;
         canvas.drawRect((float) (framingRect.left + 2), (float) (middle - 1), (float) (framingRect.right - 1), (float) (middle + 2), this.mLaserPaint);
-        this.postInvalidateDelayed(80L, framingRect.left - 10, framingRect.top - 10, framingRect.right + 10, framingRect.bottom + 10);
+        postInvalidateDelayed(ANIMATION_DELAY, 0, 0, getWidth(), getHeight());
+    }
+
+
+    public void drawResultPoint(Canvas canvas) {
+        if (rawResult != null && rawResult.length > 0) {
+            Rect framingRect = this.getFramingRect();
+            int frameLeft = framingRect.left;
+            int frameTop = framingRect.top;
+
+            for (Result result : rawResult) {
+                ResultPoint[] points = result.getResultPoints();
+                for (ResultPoint point : points) {
+                    canvas.drawCircle(frameLeft + (int) (point.getX() / resultScale),
+                            frameTop + (int) (point.getY() / resultScale),
+                            POINT_SIZE, mBorderPaint);
+                }
+            }
+        }
     }
 
     protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld) {
@@ -192,36 +212,7 @@ public class ViewFinderView extends View implements IViewFinder {
     }
 
     public synchronized void updateFramingRect() {
-        Point viewResolution = new Point(this.getWidth(), this.getHeight());
-        int orientation = DisplayUtils.getScreenOrientation(this.getContext());
-        int width;
-        int height;
-        if (this.mSquareViewFinder) {
-            if (orientation != 1) {
-                height = (int) ((float) this.getHeight() * 0.625F);
-                width = height;
-            } else {
-                width = (int) ((float) this.getWidth() * 0.625F);
-                height = width;
-            }
-        } else if (orientation != 1) {
-            height = (int) ((float) this.getHeight() * 0.625F);
-            width = (int) (1.4F * (float) height);
-        } else {
-            width = (int) ((float) this.getWidth() * 0.75F);
-            height = (int) (0.75F * (float) width);
-        }
-
-        if (width > this.getWidth()) {
-            width = this.getWidth() - 50;
-        }
-
-        if (height > this.getHeight()) {
-            height = this.getHeight() - 50;
-        }
-
-        int leftOffset = (viewResolution.x - width) / 2;
-        int topOffset = (viewResolution.y - height) / 2;
-        this.mFramingRect = new Rect(leftOffset + this.mViewFinderOffset, topOffset + this.mViewFinderOffset, leftOffset + width - this.mViewFinderOffset, topOffset + height - this.mViewFinderOffset);
+        this.mFramingRect = new Rect(this.mViewFinderOffset,  this.mViewFinderOffset,
+                this.getWidth() - this.mViewFinderOffset, this.getHeight() - this.mViewFinderOffset);
     }
 }

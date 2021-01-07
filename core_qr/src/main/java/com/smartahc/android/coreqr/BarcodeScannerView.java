@@ -17,7 +17,7 @@ import android.widget.RelativeLayout;
 public abstract class BarcodeScannerView extends FrameLayout implements PreviewCallback {
     private CameraWrapper mCameraWrapper;
     private CameraPreview mPreview;
-    private IViewFinder mViewFinderView;
+    protected ViewFinderView mViewFinderView;
     private Rect mFramingRectInPreview;
     private CameraHandlerThread mCameraHandlerThread;
     private Boolean mFlashState;
@@ -113,7 +113,7 @@ public abstract class BarcodeScannerView extends FrameLayout implements PreviewC
         }
     }
 
-    protected IViewFinder createViewFinderView(Context context) {
+    protected ViewFinderView createViewFinderView(Context context) {
         ViewFinderView viewFinderView = new ViewFinderView(context);
         viewFinderView.setBorderColor(this.mBorderColor);
         viewFinderView.setLaserColor(this.mLaserColor);
