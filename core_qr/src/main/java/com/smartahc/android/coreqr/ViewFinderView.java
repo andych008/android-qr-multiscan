@@ -1,15 +1,15 @@
 package com.smartahc.android.coreqr;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.CornerPathEffect;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.Paint.Join;
 import android.graphics.Paint.Style;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -20,15 +20,7 @@ import com.google.zxing.ResultPoint;
 public class ViewFinderView extends View implements IViewFinder {
     private static final String TAG = "ViewFinderView";
 
-    private static final int CURRENT_POINT_OPACITY = 0xA0;
-
     private Rect mFramingRect;
-    private static final float PORTRAIT_WIDTH_RATIO = 0.75F;
-    private static final float PORTRAIT_WIDTH_HEIGHT_RATIO = 0.75F;
-    private static final float LANDSCAPE_HEIGHT_RATIO = 0.625F;
-    private static final float LANDSCAPE_WIDTH_HEIGHT_RATIO = 1.4F;
-    private static final int MIN_DIMENSION_DIFF = 50;
-    private static final float DEFAULT_SQUARE_DIMENSION_RATIO = 0.625F;
     private static final int[] SCANNER_ALPHA = new int[]{0, 64, 128, 192, 255, 192, 128, 64};
     private int scannerAlpha;
     private static final int POINT_SIZE = 10;
@@ -41,7 +33,7 @@ public class ViewFinderView extends View implements IViewFinder {
     protected Paint mLaserPaint;
     protected Paint mFinderMaskPaint;
     protected Paint mBorderPaint;
-    protected Paint mPaint;
+    protected Paint mPointPaint;
     protected int mBorderLineLength;
     protected boolean mSquareViewFinder;
     private boolean mIsLaserEnabled;
@@ -85,18 +77,26 @@ public class ViewFinderView extends View implements IViewFinder {
     }
 
     private void init() {
-        this.mLaserPaint = new Paint();
+        this.mLaserPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mLaserPaint.setColor(this.mDefaultLaserColor);
-        this.mLaserPaint.setStyle(Style.FILL);
+//        this.mLaserPaint.setStyle(Style.FILL);
         this.mFinderMaskPaint = new Paint();
         this.mFinderMaskPaint.setColor(this.mDefaultMaskColor);
+
+        this.mPointPaint = new Paint();
+        this.mPointPaint.setColor(this.mDefaultBorderColor);
+        this.mPointPaint.setStyle(Style.FILL);
+        this.mPointPaint.setStrokeWidth((float) this.mDefaultBorderStrokeWidth);
+        this.mPointPaint.setAntiAlias(true);
+
         this.mBorderPaint = new Paint();
         this.mBorderPaint.setColor(this.mDefaultBorderColor);
         this.mBorderPaint.setStyle(Style.STROKE);
         this.mBorderPaint.setStrokeWidth((float) this.mDefaultBorderStrokeWidth);
         this.mBorderPaint.setAntiAlias(true);
         this.mBorderLineLength = this.mDefaultBorderLineLength;
-        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.scannerLineMoveDistance = dp2Px(5);
+        this.scannerLineHeight = dp2Px(3);
     }
 
     public void setLaserColor(int laserColor) {
@@ -159,13 +159,29 @@ public class ViewFinderView extends View implements IViewFinder {
         return this.mFramingRect;
     }
 
+    private int scannerStart = 0;
+    private int scannerEnd = 0;
+    private int scannerLineHeight = 0;
+    private int scannerLineMoveDistance = 0;
+
     public void onDraw(Canvas canvas) {
         if (mFramingRect != null) {
             drawResultPoint(canvas);
 
             if (this.mIsLaserEnabled) {
-                this.drawLaser(canvas);
+
+                if(scannerStart == 0 || scannerEnd == 0) {
+
+                    scannerStart = mFramingRect.top+mFramingRect.height()/5;
+                    scannerEnd = mFramingRect.bottom - scannerLineHeight-mFramingRect.height()*2/5;
+                }
+
+                this.drawLineScanner(canvas);
+//                this.drawLaser(canvas);
             }
+
+
+            postInvalidateDelayed(ANIMATION_DELAY, 0, 0, getWidth(), getHeight());
         }
     }
 
@@ -179,6 +195,32 @@ public class ViewFinderView extends View implements IViewFinder {
         canvas.drawRect(0.0F, (float) (framingRect.bottom + 1), (float) width, (float) height, this.mFinderMaskPaint);
     }
 
+    /**
+     * 绘制线性式扫描
+     * @param canvas
+     */
+    private void drawLineScanner(Canvas canvas){
+
+        Rect frame = this.getFramingRect();
+        //线性渐变
+        LinearGradient linearGradient = new LinearGradient(
+                frame.left, scannerStart,
+                frame.left, scannerStart + scannerLineHeight,
+                shadeColor(mDefaultLaserColor),
+                mDefaultLaserColor,
+                Shader.TileMode.MIRROR);
+
+        mLaserPaint.setShader(linearGradient);
+        if(scannerStart <= scannerEnd) {
+            //椭圆
+            RectF rectF = new RectF(frame.left + 2 * scannerLineHeight, scannerStart, frame.right - 2 * scannerLineHeight, scannerStart + scannerLineHeight);
+            canvas.drawOval(rectF, mLaserPaint);
+            scannerStart += scannerLineMoveDistance;
+        } else {
+            scannerStart = frame.top;
+        }
+    }
+
 
     public void drawLaser(Canvas canvas) {
         Rect framingRect = this.getFramingRect();
@@ -190,7 +232,7 @@ public class ViewFinderView extends View implements IViewFinder {
     }
 
 
-    public void drawResultPoint(Canvas canvas) {
+    private void drawResultPoint4(Canvas canvas) {
         if (rawResult != null && rawResult.length > 0) {
             Rect framingRect = this.getFramingRect();
             int frameLeft = framingRect.left;
@@ -201,8 +243,29 @@ public class ViewFinderView extends View implements IViewFinder {
                 for (ResultPoint point : points) {
                     canvas.drawCircle(frameLeft + (int) (point.getX() / resultScale),
                             frameTop + (int) (point.getY() / resultScale),
-                            POINT_SIZE, mBorderPaint);
+                            POINT_SIZE, mPointPaint);
                 }
+            }
+        }
+    }
+
+    private void drawResultPoint(Canvas canvas) {
+        if (rawResult != null && rawResult.length > 0) {
+            Rect framingRect = this.getFramingRect();
+            int frameLeft = framingRect.left;
+            int frameTop = framingRect.top;
+
+            for (Result result : rawResult) {
+                ResultPoint[] points = result.getResultPoints();
+                float x = 0f;
+                float y = 0f;
+                for (ResultPoint point : points) {
+                    x+=point.getX();
+                    y+=point.getY();
+                }
+                canvas.drawCircle(frameLeft + (int) (x/points.length / resultScale),
+                        frameTop + (int) (y/points.length / resultScale),
+                        POINT_SIZE, mPointPaint);
             }
         }
     }
@@ -214,5 +277,21 @@ public class ViewFinderView extends View implements IViewFinder {
     public synchronized void updateFramingRect() {
         this.mFramingRect = new Rect(this.mViewFinderOffset,  this.mViewFinderOffset,
                 this.getWidth() - this.mViewFinderOffset, this.getHeight() - this.mViewFinderOffset);
+//        scannerLineHeight=getHeight()*2/5;
+    }
+
+    /**
+     * 处理颜色模糊
+     * @param color
+     * @return
+     */
+    private int shadeColor(int color) {
+        String hax = Integer.toHexString(color);
+        String result = "01"+hax.substring(2);
+        return Integer.valueOf(result, 16);
+    }
+
+    private int dp2Px(int dp) {
+        return (int) (dp * getContext().getResources().getDisplayMetrics().density + 0.5f);
     }
 }
