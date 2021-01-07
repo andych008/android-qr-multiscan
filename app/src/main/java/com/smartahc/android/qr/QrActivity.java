@@ -49,6 +49,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
 
     }
 
+    private long lastTime;
     @Override
     public void handleResult(Result... results) {
         Log.v("result len:", ""+results.length);
@@ -58,7 +59,20 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
                 printLog(result.getText());
             }
             //
-            mScannerView.resumeCameraPreview(this);
+            long currentTimeMillis = System.currentTimeMillis();
+            long offTime = currentTimeMillis - lastTime;
+            lastTime = currentTimeMillis;
+            if (results.length >= 4) {
+                mScannerView.stopCameraPreview();
+            } else if (results.length >= 3 && offTime > 4000 && offTime < 16000) {
+                mScannerView.stopCameraPreview();
+            } else if (results.length >= 2 && offTime > 6000 && offTime < 16000) {
+                mScannerView.stopCameraPreview();
+            } else if (results.length >= 1 && offTime > 8000 && offTime < 16000 ) {
+                mScannerView.stopCameraPreview();
+            } else {
+                mScannerView.resumeCameraPreview(this);
+            }
         }
     }
 

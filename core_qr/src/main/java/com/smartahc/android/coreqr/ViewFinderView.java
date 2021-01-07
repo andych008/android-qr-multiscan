@@ -169,9 +169,7 @@ public class ViewFinderView extends View implements IViewFinder {
             drawResultPoint(canvas);
 
             if (this.mIsLaserEnabled) {
-
                 if(scannerStart == 0 || scannerEnd == 0) {
-
                     scannerStart = mFramingRect.top+mFramingRect.height()/5;
                     scannerEnd = mFramingRect.bottom - scannerLineHeight-mFramingRect.height()*2/5;
                 }
