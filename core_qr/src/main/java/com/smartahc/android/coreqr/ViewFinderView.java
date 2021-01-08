@@ -60,7 +60,7 @@ public class ViewFinderView extends View implements IViewFinder {
     }
     //定义一个接口
     public interface  OnItemSelectListener{
-        public void onItemSelect(int index, String indexString);
+        void onItemSelect(Result result);
     }
 
     public void setResultScale(float resultScale) {
@@ -201,20 +201,29 @@ public class ViewFinderView extends View implements IViewFinder {
         switch (event.getAction()){
             case MotionEvent.ACTION_MOVE:
             case MotionEvent.ACTION_DOWN:
-                float x=event.getX();
-                float y = event.getY();
+                int x=(int)event.getX();
+                int y = (int)event.getY();
+                int i=0;
+                for (Point point : greenPoints) {
 
-//
-//
-//                if(x>getWidth()-2*textWidth){
-//                    index = (int) (y/(height/27));
-//                    //此处有增加，当屏幕被点击后，将参数传入。
-//                    if(listener!=null){
-//                        listener.onItemSelect(index, array[index]);
-//                    }
-//                    invalidate();
-//                    return true;
-//                }
+                    point.x = mFramingRect.left+ point.x;
+                    point.y = mFramingRect.top+ point.y;
+
+                    Rect rect = new Rect();
+                    rect.left = point.x-POINT_SIZE;
+                    rect.top = point.y-POINT_SIZE;
+                    rect.right = point.x+POINT_SIZE;
+                    rect.bottom = point.y+POINT_SIZE;
+                    if (rect.contains(x, y)) {
+                        if (listener!=null) {
+                            Result result = rawResult[i];
+                            listener.onItemSelect(result);
+                        }
+                        invalidate();
+                        return true;
+                    }
+                    i++;
+                }
                 break;
 
             case MotionEvent.ACTION_UP:

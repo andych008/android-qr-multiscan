@@ -23,7 +23,6 @@ import java.util.ArrayList;
 public class QrActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
 
     private ZXingScannerView mScannerView;
-    private ArrayList<String> results = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -43,6 +42,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
                 mScannerView.resumeCameraPreview(QrActivity.this);
             }
         });
+
     }
 
     @Override
@@ -63,6 +63,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
 
     }
 
+    private ArrayList<String> results = new ArrayList<>();
     private long lastTime;
     @Override
     public void handleResult(Result... results) {
