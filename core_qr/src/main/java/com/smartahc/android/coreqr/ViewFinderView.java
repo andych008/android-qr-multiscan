@@ -1,6 +1,8 @@
 package com.smartahc.android.coreqr;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.CornerPathEffect;
 import android.graphics.LinearGradient;
@@ -28,7 +30,8 @@ public class ViewFinderView extends View implements IViewFinder {
     private Rect mFramingRect;
     private static final int[] SCANNER_ALPHA = new int[]{0, 64, 128, 192, 255, 192, 128, 64};
     private int scannerAlpha;
-    private static final int POINT_SIZE = 10;
+//    private static final int POINT_SIZE = 10;
+    private int POINT_SIZE;
     private static final long ANIMATION_DELAY = 80L;
     private final int mDefaultLaserColor;
     private final int mDefaultMaskColor;
@@ -44,7 +47,7 @@ public class ViewFinderView extends View implements IViewFinder {
     private boolean mIsLaserEnabled;
     private float mBordersAlpha;
     private int mViewFinderOffset;
-
+    private Bitmap greenBmp;
     private Result[] rawResult;
     private float resultScale =1.0f;
     private List<Point> greenPoints = new ArrayList<>();
@@ -109,6 +112,7 @@ public class ViewFinderView extends View implements IViewFinder {
     }
 
     private void init() {
+        this.POINT_SIZE = dp2Px(15);
         this.mLaserPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.mLaserPaint.setColor(this.mDefaultLaserColor);
 //        this.mLaserPaint.setStyle(Style.FILL);
@@ -129,6 +133,7 @@ public class ViewFinderView extends View implements IViewFinder {
         this.mBorderLineLength = this.mDefaultBorderLineLength;
         this.scannerLineMoveDistance = dp2Px(5);
         this.scannerLineHeight = dp2Px(3);
+        greenBmp = BitmapFactory.decodeResource(getResources(), R.drawable.qapp_qr_green);
     }
 
     public void setLaserColor(int laserColor) {
@@ -311,13 +316,18 @@ public class ViewFinderView extends View implements IViewFinder {
     private void drawResultPoint(Canvas canvas) {
         if (rawResult != null && rawResult.length > 0) {
             Rect framingRect = this.getFramingRect();
-            int frameLeft = framingRect.left;
-            int frameTop = framingRect.top;
+
 
             for (Point point : greenPoints) {
-                canvas.drawCircle(frameLeft + point.x,
-                        frameTop + point.y,
-                        POINT_SIZE, mPointPaint);
+                int x = framingRect.left+ point.x;
+                int y = framingRect.top+ point.y;
+
+                Rect rect = new Rect();
+                rect.left = x-POINT_SIZE;
+                rect.top = y-POINT_SIZE;
+                rect.right = x+POINT_SIZE;
+                rect.bottom = y+POINT_SIZE;
+                canvas.drawBitmap(greenBmp, null, rect, mPointPaint);
             }
 
         }

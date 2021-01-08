@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import com.google.zxing.Result;
@@ -26,9 +28,21 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_qr);
         mScannerView = new ZXingScannerView(this);
-        setContentView(mScannerView);
+
+        FrameLayout frameLayout = findViewById(R.id.container);
+        frameLayout.addView(mScannerView);
         results.clear();
+
+        findViewById(R.id.cancel_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                QrActivity.this.results.clear();
+                lastTime = 0;
+                mScannerView.resumeCameraPreview(QrActivity.this);
+            }
+        });
     }
 
     @Override
