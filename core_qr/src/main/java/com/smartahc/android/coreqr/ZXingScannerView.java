@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
@@ -44,6 +45,56 @@ public class ZXingScannerView extends BarcodeScannerView {
 
 
 
+    private ZXingScannerView.ResultHandler internalResultHandler = new ResultHandler() {
+
+        private ArrayList<String> results = new ArrayList<>();
+        private long lastTime;
+        @Override
+        public void handleResult(Result... results) {
+            Log.v("result len:", ""+results.length);
+            if (results.length > 0) {
+                for (int i = 0; i < results.length; i++) {
+                    Result result = results[i];
+                    printLog(result.getText());
+                }
+                //
+                long currentTimeMillis = System.currentTimeMillis();
+                long offTime = currentTimeMillis - lastTime;
+
+                if (results.length >= 4) {
+//                    stopCameraPreview();
+
+                    mResultHandler.handleResult(results);
+                } else if (offTime < 16000) {
+                    if (this.results.size() == results.length) {
+                        lastTime = currentTimeMillis;
+                        if (offTime < 1000) {
+                            this.results.clear();
+                            resumeCameraPreview(this);
+                        } else {
+
+                            mResultHandler.handleResult(results);
+                        }
+                    } else {
+                        this.results.clear();
+                        resumeCameraPreview(this);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onItemSelect(Result result) {
+
+        }
+
+        private void printLog(String result) {
+            if (!results.contains(result)) {
+                Log.v("new result :", result);
+                results.add(result);
+            }
+        }
+    };
     public ZXingScannerView(Context context) {
         super(context);
         this.initQRMultiFormatReader();
@@ -72,6 +123,24 @@ public class ZXingScannerView extends BarcodeScannerView {
      * 初始化 qr format reader
      */
     private void initQRMultiFormatReader() {
+        mViewFinderView.setOnItemSelectListener(new ViewFinderView.OnItemSelectListener() {
+            @Override
+            public void onItemSelect(Result result) {
+                final Result finalRawResult = result;
+                mainHandler.post(new Runnable() {
+                    public void run() {
+                        ResultHandler tmpResultHandler = ZXingScannerView.this.mResultHandler;
+//                        ZXingScannerView.this.mResultHandler = null;
+                        ZXingScannerView.this.stopCameraPreview();
+                        if (tmpResultHandler != null) {
+                            tmpResultHandler.onItemSelect(finalRawResult);
+                        }
+                    }
+                });
+
+
+            }
+        });
         hints = new EnumMap(DecodeHintType.class);
         hints.put(DecodeHintType.POSSIBLE_FORMATS, this.getFormats());
         this.qrCodeMultiReader = new QRCodeMultiReader();
@@ -122,11 +191,9 @@ public class ZXingScannerView extends BarcodeScannerView {
                 final Result[] finalRawResult = rawResult;
                 mainHandler.post(new Runnable() {
                     public void run() {
-                        ResultHandler tmpResultHandler = ZXingScannerView.this.mResultHandler;
-                        ZXingScannerView.this.mResultHandler = null;
                         ZXingScannerView.this.stopCameraPreview();
-                        if (tmpResultHandler != null) {
-                            tmpResultHandler.handleResult(finalRawResult);
+                        if (internalResultHandler != null) {
+                            internalResultHandler.handleResult(finalRawResult);
                         }
 
                     }
@@ -243,6 +310,8 @@ public class ZXingScannerView extends BarcodeScannerView {
     public interface ResultHandler {
 
         void handleResult(Result... results);
+        void onItemSelect(Result result);
 
     }
+
 }

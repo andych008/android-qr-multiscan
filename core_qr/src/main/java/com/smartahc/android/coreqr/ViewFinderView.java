@@ -69,9 +69,9 @@ public class ViewFinderView extends View implements IViewFinder {
 
 
     void setRawResult(Result... rawResult) {
+
         if (rawResult != null && rawResult.length > 0) {
             this.rawResult = rawResult;
-
             greenPoints.clear();
             for (Result result : rawResult) {
                 ResultPoint[] points = result.getResultPoints();
@@ -156,7 +156,14 @@ public class ViewFinderView extends View implements IViewFinder {
         this.mBorderLineLength = borderLineLength;
     }
 
+    public boolean ismIsLaserEnabled() {
+        return mIsLaserEnabled;
+    }
+
     public void setLaserEnabled(boolean isLaserEnabled) {
+        if (isLaserEnabled) {
+            greenPoints.clear();
+        }
         this.mIsLaserEnabled = isLaserEnabled;
     }
 
@@ -199,7 +206,6 @@ public class ViewFinderView extends View implements IViewFinder {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()){
-            case MotionEvent.ACTION_MOVE:
             case MotionEvent.ACTION_DOWN:
                 int x=(int)event.getX();
                 int y = (int)event.getY();
@@ -209,11 +215,12 @@ public class ViewFinderView extends View implements IViewFinder {
                     point.x = mFramingRect.left+ point.x;
                     point.y = mFramingRect.top+ point.y;
 
+                    int size = (int)(POINT_SIZE *5f/4);
                     Rect rect = new Rect();
-                    rect.left = point.x-POINT_SIZE;
-                    rect.top = point.y-POINT_SIZE;
-                    rect.right = point.x+POINT_SIZE;
-                    rect.bottom = point.y+POINT_SIZE;
+                    rect.left = point.x-size;
+                    rect.top = point.y-size;
+                    rect.right = point.x+size;
+                    rect.bottom = point.y+size;
                     if (rect.contains(x, y)) {
                         if (listener!=null) {
                             Result result = rawResult[i];

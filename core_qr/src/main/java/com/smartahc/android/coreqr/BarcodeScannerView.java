@@ -91,6 +91,10 @@ public abstract class BarcodeScannerView extends FrameLayout implements PreviewC
         this.mViewFinderView = this.createViewFinderView(this.getContext());
     }
 
+    public boolean isScanning() {
+        return mViewFinderView.ismIsLaserEnabled();
+    }
+
     public final void setupLayout(CameraWrapper cameraWrapper) {
         this.removeAllViews();
         this.mPreview = new CameraPreview(this.getContext(), cameraWrapper, this);
@@ -239,8 +243,10 @@ public abstract class BarcodeScannerView extends FrameLayout implements PreviewC
 
     protected void resumeCameraPreview() {
         if (this.mPreview != null) {
+            mViewFinderView.setRawResult(null);
             this.mPreview.showCameraPreview();
             mViewFinderView.setLaserEnabled(true);
+
         }
 
     }
