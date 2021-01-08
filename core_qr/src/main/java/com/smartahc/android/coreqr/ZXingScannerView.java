@@ -176,8 +176,8 @@ public class ZXingScannerView extends BarcodeScannerView {
             }
 
             mViewFinderView.setResultScale((float) finalRawResult.getWidth()/getWidth());
-            Log.d(TAG, "parseQrMultiFormatReader() called with: finalRawResult.getWidth() = [" +finalRawResult.getWidth()
-                    + "], finalRawResult.getHeight() = [" + finalRawResult.getHeight() + "]");
+//            Log.d(TAG, "parseQrMultiFormatReader() called with: finalRawResult.getWidth() = [" +finalRawResult.getWidth()
+//                    + "], finalRawResult.getHeight() = [" + finalRawResult.getHeight() + "]");
 
         }
 

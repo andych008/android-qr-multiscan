@@ -7,14 +7,19 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Paint.Join;
 import android.graphics.Paint.Style;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
 import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class ViewFinderView extends View implements IViewFinder {
@@ -42,6 +47,18 @@ public class ViewFinderView extends View implements IViewFinder {
 
     private Result[] rawResult;
     private float resultScale =1.0f;
+    private List<Point> greenPoints = new ArrayList<>();
+
+    //定义一个接口对象listerner
+    private OnItemSelectListener listener;
+    //获得接口对象的方法。
+    public void setOnItemSelectListener(OnItemSelectListener listener) {
+        this.listener = listener;
+    }
+    //定义一个接口
+    public interface  OnItemSelectListener{
+        public void onItemSelect(int index, String indexString);
+    }
 
     public void setResultScale(float resultScale) {
         this.resultScale = resultScale;
@@ -51,8 +68,23 @@ public class ViewFinderView extends View implements IViewFinder {
     void setRawResult(Result... rawResult) {
         if (rawResult != null && rawResult.length > 0) {
             this.rawResult = rawResult;
+
+            greenPoints.clear();
+            for (Result result : rawResult) {
+                ResultPoint[] points = result.getResultPoints();
+                float x = 0f;
+                float y = 0f;
+                for (ResultPoint point : points) {
+                    x += point.getX();
+                    y += point.getY();
+                }
+                greenPoints.add(new Point((int) (x / points.length / resultScale),
+                        (int) (y / points.length / resultScale)));
+            }
+
             postInvalidate();
         }
+
     }
     public ViewFinderView(Context context) {
         super(context);
@@ -159,6 +191,35 @@ public class ViewFinderView extends View implements IViewFinder {
         return this.mFramingRect;
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()){
+            case MotionEvent.ACTION_MOVE:
+            case MotionEvent.ACTION_DOWN:
+                float x=event.getX();
+                float y = event.getY();
+
+//
+//
+//                if(x>getWidth()-2*textWidth){
+//                    index = (int) (y/(height/27));
+//                    //此处有增加，当屏幕被点击后，将参数传入。
+//                    if(listener!=null){
+//                        listener.onItemSelect(index, array[index]);
+//                    }
+//                    invalidate();
+//                    return true;
+//                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+
+                invalidate();
+                return true;
+        }
+        return super.onTouchEvent(event);
+    }
+
     private int scannerStart = 0;
     private int scannerEnd = 0;
     private int scannerLineHeight = 0;
@@ -253,18 +314,12 @@ public class ViewFinderView extends View implements IViewFinder {
             int frameLeft = framingRect.left;
             int frameTop = framingRect.top;
 
-            for (Result result : rawResult) {
-                ResultPoint[] points = result.getResultPoints();
-                float x = 0f;
-                float y = 0f;
-                for (ResultPoint point : points) {
-                    x+=point.getX();
-                    y+=point.getY();
-                }
-                canvas.drawCircle(frameLeft + (int) (x/points.length / resultScale),
-                        frameTop + (int) (y/points.length / resultScale),
+            for (Point point : greenPoints) {
+                canvas.drawCircle(frameLeft + point.x,
+                        frameTop + point.y,
                         POINT_SIZE, mPointPaint);
             }
+
         }
     }
 

@@ -61,17 +61,20 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
             //
             long currentTimeMillis = System.currentTimeMillis();
             long offTime = currentTimeMillis - lastTime;
-            lastTime = currentTimeMillis;
+
             if (results.length >= 4) {
                 mScannerView.stopCameraPreview();
-            } else if (results.length >= 3 && offTime > 4000 && offTime < 16000) {
-                mScannerView.stopCameraPreview();
-            } else if (results.length >= 2 && offTime > 6000 && offTime < 16000) {
-                mScannerView.stopCameraPreview();
-            } else if (results.length >= 1 && offTime > 8000 && offTime < 16000 ) {
-                mScannerView.stopCameraPreview();
-            } else {
-                mScannerView.resumeCameraPreview(this);
+            } else if (offTime < 16000) {
+                if (this.results.size() == results.length) {
+                    lastTime = currentTimeMillis;
+                    if (offTime < 1000) {
+                        this.results.clear();
+                        mScannerView.resumeCameraPreview(this);
+                    }
+                } else {
+                    this.results.clear();
+                    mScannerView.resumeCameraPreview(this);
+                }
             }
         }
     }
