@@ -19,4 +19,10 @@ android {
 
 dependencies {
     api 'com.google.zxing:core:3.3.3'
+    implementation ('com.ypx.yimagepicker:support:3.1.4.1') {
+        exclude group: "com.android.support"
+        exclude group: "org.jetbrains"
+    }
+
+    implementation "com.android.support:appcompat-v7:$supportVersion"
 }

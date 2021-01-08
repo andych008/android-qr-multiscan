@@ -1,10 +1,12 @@
 package com.smartahc.android.qr;
 
-import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
+
+import com.smartahc.android.coreqr.MultiQrUtil;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -20,7 +22,14 @@ public class MainActivity extends AppCompatActivity {
         btnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(MainActivity.this, QrMultiActivity.class));
+                MultiQrUtil.scan(MainActivity.this, new MultiQrUtil.OnCompleteListener() {
+                    @Override
+                    public void onComplete(String str) {
+
+                        Toast.makeText(MainActivity.this, str, Toast.LENGTH_SHORT).show();
+
+                    }
+                });
             }
         });
     }
