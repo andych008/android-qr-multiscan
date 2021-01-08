@@ -6,7 +6,7 @@ import android.hardware.Camera.Parameters;
 import java.util.List;
 
 public class CameraUtils {
-    public CameraUtils() {
+    private CameraUtils() {
     }
 
     public static Camera getCameraInstance() {

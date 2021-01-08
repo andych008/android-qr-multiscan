@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         btnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(MainActivity.this, QrActivity.class));
+                startActivity(new Intent(MainActivity.this, QrMultiActivity.class));
             }
         });
     }

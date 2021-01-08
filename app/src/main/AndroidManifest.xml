@@ -21,7 +21,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".QrActivity"
+            android:name=".QrMultiActivity"
             android:screenOrientation="portrait" />
     </application>
 

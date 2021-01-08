@@ -20,7 +20,7 @@ import java.util.ArrayList;
  * 扫码界面
  */
 
-public class QrActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
+public class QrMultiActivity extends AppCompatActivity implements ZXingScannerView.ResultHandler {
 
     private ZXingScannerView mScannerView;
     TextView textView;
@@ -41,7 +41,7 @@ public class QrActivity extends AppCompatActivity implements ZXingScannerView.Re
                 if (mScannerView.isScanning()) {
                     finish();
                 } else {
-                    mScannerView.resumeCameraPreview(QrActivity.this);
+                    mScannerView.resumeCameraPreview(QrMultiActivity.this);
                 }
 
             }

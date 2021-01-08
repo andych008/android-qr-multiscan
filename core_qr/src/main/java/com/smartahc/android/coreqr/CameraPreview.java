@@ -207,7 +207,7 @@ public class CameraPreview extends SurfaceView implements Callback {
                 Camera.getCameraInfo(this.mCameraWrapper.mCameraId, info);
             }
 
-            WindowManager wm = (WindowManager)this.getContext().getSystemService("window");
+            WindowManager wm = (WindowManager)this.getContext().getSystemService(Context.WINDOW_SERVICE);
             Display display = wm.getDefaultDisplay();
             int rotation = display.getRotation();
             short degrees = 0;

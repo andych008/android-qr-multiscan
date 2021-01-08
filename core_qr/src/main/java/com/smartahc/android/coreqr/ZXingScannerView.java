@@ -68,11 +68,18 @@ public class ZXingScannerView extends BarcodeScannerView {
                 } else if (offTime < 16000) {
                     if (this.results.size() == results.length) {
                         lastTime = currentTimeMillis;
-                        if (offTime < 1000) {
+                        int maxtime;
+                        if (results.length >= 3) {
+                            maxtime = 1000;
+                        } else if (results.length >= 2) {
+                            maxtime = 2000;
+                        } else {
+                            maxtime = 3000;
+                        }
+                        if (offTime < maxtime) {
                             this.results.clear();
                             resumeCameraPreview(this);
                         } else {
-
                             mResultHandler.handleResult(results);
                         }
                     } else {
