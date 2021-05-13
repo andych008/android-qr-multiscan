@@ -1,1 +1,1 @@
-include ':app', ':core_qr'
+include ':app', ':multi_qr'
